@@ -163,20 +163,24 @@ def escanear_entrada(entrada):
                 lexema, valor = palabras_reservadas[token]
                 tabla_lexica.append((num_linea, token, lexema, 1, valor, None))
                 codigos_tokens.append(valor)
+                lineas_tokens.append(num_linea)
             elif token in delimitadores:  # Identificar delimitadores
                 tipo, valor = delimitadores[token]
                 tabla_lexica.append((num_linea, token, tipo, 5, valor, None))
                 codigos_tokens.append(valor)
+                lineas_tokens.append(num_linea)
             elif token in operadores:  # Identificar operadores
                 tipo, valor = operadores[token]
                 tabla_lexica.append((num_linea, token, tipo, 7, valor, None))
                 codigos_tokens.append(valor)
+                lineas_tokens.append(num_linea)
             elif re.match(r'^[0-9]+$', token): # Identificar constante numerica
                 lexema = token
                 tipo = 6
                 tabla_constantes[lexema] = num_constante, 61
                 tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
                 num_constante += 1
+                lineas_tokens.append(num_linea)
             elif re.match(r"[‘']([a-zA-Z0-9\s]+)[‘']", token):  # Identificar constante 
                 subtokens = re.findall(r"[‘']|[a-zA-Z0-9]+", token)  # Separar la constante en subtokens (comillas y constantes)
                 print("subtoken:", subtokens)
@@ -185,6 +189,7 @@ def escanear_entrada(entrada):
                         tipo,codigo = delimitadores[subtoken]
                         tabla_lexica.append((num_linea, subtoken, tipo, 5, codigo, None))  # Agregar a la tabla léxica
                         codigos_tokens.append(54)
+                        lineas_tokens.append(num_linea)
                     else:  # Si es una constante
                         tipo = 6
                         lexema = subtoken[1:-1] if subtoken[0] in ["‘", "'"] else subtoken  # Extraer el lexema de la constante
@@ -192,6 +197,7 @@ def escanear_entrada(entrada):
                         tabla_constantes[lexema] = num_constante,62
                         tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
                         codigos_tokens.append(62)
+                        lineas_tokens.append(num_linea)
                         num_constante += 1
             # elif re.match(r"[‘']([a-zA-Z0-9]+)[‘']", token): # Identificar constante alfanumérica
             #     lexema = token[1:-1]
@@ -207,18 +213,21 @@ def escanear_entrada(entrada):
                 lexema = f'ID_{tabla_identificadores[token]}'
                 tabla_lexica.append((num_linea, token, lexema, 4, tabla_identificadores[token], None))
                 codigos_tokens.append(4)
+                lineas_tokens.append(num_linea)
             elif re.match(r'[><=]', token):  # Identificar relacionales
                 tipo, valor = relacionales[token]
                 tabla_lexica.append((num_linea, token, tipo, 8, valor, None))
                 codigos_tokens.append(8)
+                lineas_tokens.append(num_linea)
             else: #Atrapa los Errores
                 errores.append((num_linea, f"Simbolo desconocido: {token}"))
                 # Agregar el código de error a codigos_tokens
                 codigos_tokens.append(token)
+                lineas_tokens.append(num_linea)
     
         num_linea += 1
     
-    return tabla_lexica, tabla_identificadores, tabla_constantes, errores, codigos_tokens
+    return tabla_lexica, tabla_identificadores, tabla_constantes, errores, codigos_tokens,lineas_tokens
 
 def mostrar_errores(errores):
     if not errores:
@@ -290,7 +299,7 @@ def traducir(valorX):
         
     return tipo,codigoError,descripcionError
 
-def algoritmo_ll(tabla_lexica):
+def algoritmo_ll(tabla_lexica,arr_num_lineas):
     # Inicialización de la pila local
     pila = [199]
     # Insertar 300 en la pila
@@ -318,7 +327,7 @@ def algoritmo_ll(tabla_lexica):
         if X == 199:
             print("x=$: ", X)
             # Obtener el mensaje de error para el código 200
-            return("todo bien")
+            return("2:200 Sin Error.")
             
         
       # Manejo de terminales y no terminales
@@ -334,8 +343,8 @@ def algoritmo_ll(tabla_lexica):
             elif X != K:
                 print("error X no es igual a K: valor esperado ", X)
                 tipo, codigoError, descripcionError = traducir(x_valor)
-                return "{} : {} {} Línea {}".format(tipo, codigoError, descripcionError, '')  # sin paréntesis ni comillas
-
+                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError )  # sin paréntesis ni comillas
+                
         else:  # No es terminal
             print("X no es terminal o $:")
             print("valorx else:", X)
@@ -353,7 +362,6 @@ def algoritmo_ll(tabla_lexica):
                 
             else:
             # Buscar el primer valor no nulo en la fila correspondiente a X en la tabla sintáctica
-                seguir = True
                 x_valor = None
                 
                 # for valor in tabla_sintactica[indices_estados[X]]: # no puede ser regla ni 99
@@ -378,15 +386,17 @@ def algoritmo_ll(tabla_lexica):
                     x_valor= primeros_ts[X]
                     X = x_valor
                 print("error2 valor x:", x_valor)
-
+                print("apun",apun)
+                print("linea",arr_num_lineas[apun])
                 tipo, codigoError, descripcionError = traducir(x_valor)
-                return "{} : {} {} Línea {}".format(tipo, codigoError, descripcionError, '')  # sin paréntesis ni comillas
+                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError ) # sin paréntesis ni comillas
 
 
     
 def main():
     while True:
         codigos_tokens = []
+        arr_num_lineas=[]
         print("\nIngrese la consulta SQL (o 'exit' para salir):")
         consulta = ""
         while True:
@@ -398,7 +408,7 @@ def main():
             consulta += linea + "\n" 
         
         # Escaneo de entrada
-        tabla_lexica, tabla_identificadores, tabla_constantes, errores, codigos_tokens = escanear_entrada(consulta.strip())
+        tabla_lexica, tabla_identificadores, tabla_constantes, errores, codigos_tokens,arr_num_lineas = escanear_entrada(consulta.strip())
 
         # Si se encontraron errores, mostrarlos
         if errores:
@@ -410,10 +420,10 @@ def main():
             # Imprimir todos los códigos, incluyendo los errores
             print("\nArray de códigos de tokens:")
             print(codigos_tokens)
-
+            print(arr_num_lineas)
             # Ejecutar el algoritmo LL
 
-            print(algoritmo_ll(codigos_tokens))
+            print(algoritmo_ll(codigos_tokens,arr_num_lineas))
 
         
 

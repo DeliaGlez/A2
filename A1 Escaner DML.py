@@ -129,27 +129,14 @@ tabla_sintactica[indices_estados[317]][indices_tokens[15]] = [15]
 tabla_sintactica[indices_estados[318]][indices_tokens[62]] = [62]
 tabla_sintactica[indices_estados[319]][indices_tokens[61]] = [61]
 
-
-# Códigos de errores léxicos y sintácticos
-# errores = {
-#     101: ("Símbolo desconocido", 1),
-#     200: ("Sin error",2),
-#     201: ("Se esperaba Palabra Reservada", 2),
-#     204: ("Se esperaba Identificador", 2),
-#     205: ("Se esperaba Delimitador", 2),
-#     206: ("Se esperaba Constante", 2),
-#     207: ("Se esperaba Operador", 2),
-#     208: ("Se esperaba Operador Relacional", 2)
-# }
-
 def escanear_entrada(entrada):
     lineas = entrada.split('\n')
     tabla_lexica = []
     tabla_identificadores = {}
     tabla_constantes = {}
     errores = []
-    codigos_tokens = []  # Lista para almacenar los códigos de tokens, incluyendo los errores
-    lineas_tokens=[]
+    codigos_tokens = []  # Lista para almacenar los códigos de tokens
+    lineas_tokens=[]  # Lista para almacenar los numeros de lineas de los tokens
     num_linea = 1
     num_identificador = 401
     num_constante = 600
@@ -181,7 +168,7 @@ def escanear_entrada(entrada):
                 tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
                 num_constante += 1
                 lineas_tokens.append(num_linea)
-            elif re.match(r"[‘']([a-zA-Z0-9\s]+)[‘']", token):  # Identificar constante 
+            elif re.match(r"[‘']([a-zA-Z0-9\s]+)[‘']", token):  # Identificar constante  ejemplo: 'DASC1'
                 subtokens = re.findall(r"[‘']|[a-zA-Z0-9]+", token)  # Separar la constante en subtokens (comillas y constantes)
                 print("subtoken:", subtokens)
                 for subtoken in subtokens:
@@ -265,6 +252,7 @@ def imprimir_tablas(tabla_lexica, tabla_identificadores, tabla_constantes):
     for lexema, (valor, tipo) in sorted(tabla_constantes.items(), key=lambda x: constantes_indices[x[0]]):
         tipo_nombre = 'ALFANUMERICO' if tipo == 62 else 'NUMERICO'
         print(f"| {constantes_indices[lexema]:<4} | {lexema:<16} | {tipo:<13} | {valor:<5} |")
+
 def traducir(valorX):
     tipo=2
     descripcionError=""
@@ -331,7 +319,7 @@ def algoritmo_ll(tabla_lexica,arr_num_lineas):
             
         
       # Manejo de terminales y no terminales
-        # if ((X > 9 and X < 30) or (X > 49 and X < 55) or (X>69 and X<74) or (X>60 and X<63)or X == 8 or X == 4) or X == 199:
+        # Si es terminal o es el final de la pila
         if (X<300) or X == 199:    
             print("x es terminal o $: ", X)
             print("valory:", K)
@@ -343,7 +331,7 @@ def algoritmo_ll(tabla_lexica,arr_num_lineas):
             elif X != K:
                 print("error X no es igual a K: valor esperado ", X)
                 tipo, codigoError, descripcionError = traducir(x_valor)
-                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError )  # sin paréntesis ni comillas
+                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError )  
                 
         else:  # No es terminal
             print("X no es terminal o $:")
@@ -364,32 +352,18 @@ def algoritmo_ll(tabla_lexica,arr_num_lineas):
             # Buscar el primer valor no nulo en la fila correspondiente a X en la tabla sintáctica
                 x_valor = None
                 
-                # for valor in tabla_sintactica[indices_estados[X]]: # no puede ser regla ni 99
-                #     if valor is not None:
-                #         x_valor = valor[0]
-                #         break
-                
-                # X = x_valor
-                # print("x_valor después del for:", x_valor)
-
-                # while 300 <= x_valor <= 319 or x_valor==99:  # Si el resultado está entre 300 y 319, repetir el proceso
-                #     for valor in tabla_sintactica[indices_estados[X]]:
-                #         if valor is not None and valor[0] != 99 :
-                #             x_valor = valor[0]
-                #             break
-                #     X = x_valor
                 x_valor= primeros_ts[X]
                 print("xvalor", x_valor)
                 X = x_valor
 
-                while 300 <= x_valor <= 319:  # Si el resultado está entre 300 y 319, repetir el proceso
+                while 300 <= x_valor <= 319:  # Si el resultado está entre 300 y 319, repetir el proceso porque es una regla
                     x_valor= primeros_ts[X]
                     X = x_valor
                 print("error2 valor x:", x_valor)
                 print("apun",apun)
                 print("linea",arr_num_lineas[apun])
                 tipo, codigoError, descripcionError = traducir(x_valor)
-                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError ) # sin paréntesis ni comillas
+                return "{} : {} Línea {}.  {}".format(tipo, codigoError,arr_num_lineas[apun], descripcionError ) 
 
 
     
@@ -417,12 +391,11 @@ def main():
         else:
             # Impresión de las tablas de símbolos si no hay errores
             imprimir_tablas(tabla_lexica,tabla_identificadores,tabla_constantes)
-            # Imprimir todos los códigos, incluyendo los errores
+            
             print("\nArray de códigos de tokens:")
             print(codigos_tokens)
             print(arr_num_lineas)
             # Ejecutar el algoritmo LL
-
             print(algoritmo_ll(codigos_tokens,arr_num_lineas))
 
         

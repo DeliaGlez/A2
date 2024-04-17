@@ -223,7 +223,7 @@ def mostrar_errores(errores):
         print("Se encontraron los siguientes errores:")
         for error in errores:
             num_linea, tipo_error = error
-            print(f"Error en la línea {num_linea}: {tipo_error}")
+            print(f"1:101 Línea {num_linea}: {tipo_error}")
 
 def imprimir_tablas(tabla_lexica, tabla_identificadores, tabla_constantes):
     print("Tabla léxica:")

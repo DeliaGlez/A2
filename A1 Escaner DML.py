@@ -29,7 +29,9 @@ delimitadores = {
     '.': ('DELIMITADOR', 51),
     '(': ('DELIMITADOR', 52),
     ')': ('DELIMITADOR', 53),
-    '‘': ('DELIMITADOR', 54)  
+    '‘': ('DELIMITADOR', 54),
+    "'": ('DELIMITADOR', 54),  
+     
 }
 
 operadores = {
@@ -49,26 +51,26 @@ relacionales = {
     '<=': ('RELACIONAL', 85)
 }
 primeros_ts = {
-    300: [10],
-    301: [302],
-    302: [304],
-    303: [50],
-    304: [4],
-    305: [51],
-    306: [308],
-    307: [50],
-    308: [4],
-    309: [4],
-    310: [12],
-    311: [313],
-    312: [317],
-    313: [304],
-    314: [315],
-    315: [8],
-    316: [304],
-    317: [14],
-    318: [62],
-    319: [61]
+    300: 10,
+    301: 302,
+    302: 304,
+    303: 50,
+    304: 4,
+    305: 51,
+    306: 308,
+    307: 50,
+    308: 4,
+    309: 4,
+    310: 12,
+    311: 313,
+    312: 317,
+    313: 304,
+    314: 315,
+    315: 8,
+    316: 304,
+    317: 14,
+    318: 62,
+    319: 61
 }
 
 # Suponiendo que tienes diccionarios como los siguientes:
@@ -128,17 +130,9 @@ tabla_sintactica[indices_estados[318]][indices_tokens[62]] = [62]
 tabla_sintactica[indices_estados[319]][indices_tokens[61]] = [61]
 
 
-
-# Asignar más producciones y errores según sea necesario
-informacion_celda = tabla_sintactica[indices_estados[301]][indices_tokens[10]]
-
-print(informacion_celda)
 # Códigos de errores léxicos y sintácticos
-errores_lexicos = {
-    101: ("Símbolo desconocido", 1)
-}
-
-errores_sintacticos = {
+errores = {
+    101: ("Símbolo desconocido", 1),
     200: ("Sin error",2),
     201: ("Se esperaba Palabra Reservada", 2),
     204: ("Se esperaba Identificador", 2),
@@ -160,8 +154,10 @@ def escanear_entrada(entrada):
     num_constante = 600
     
     for linea in lineas:
-        tokens = re.findall(r"[,‘.()]|[-+*/]|>=?|<=?|[><=]|'[^']*'|\b\d+\b|\b[a-zA-Z#][a-zA-Z0-9#]*|\b[a-zA-Z#][a-zA-Z0-9#]*#|[^a-zA-Z0-9\s]", linea)
+        tokens = re.findall(r"[,.()]|[-+*/]|>=?|<=?|[><=]|'[^'\s]*'|‘[^‘‘]*‘|\b\d+\b|\b[a-zA-Z#][a-zA-Z0-9#]*|\b[a-zA-Z#][a-zA-Z0-9#]*#|[^a-zA-Z0-9\s]", linea)
+        print("tokens encontrados:",tokens)
         for token in tokens:
+            print("token:",token)
             if token in palabras_reservadas:  # Identificar palabras reservadas
                 lexema, valor = palabras_reservadas[token]
                 tabla_lexica.append((num_linea, token, lexema, 1, valor, None))
@@ -179,8 +175,30 @@ def escanear_entrada(entrada):
                 tipo = 6
                 tabla_constantes[lexema] = num_constante, 61
                 tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
-                codigos_tokens.append(61)
                 num_constante += 1
+            elif re.match(r"[‘']([a-zA-Z0-9\s]+)[‘']", token):  # Identificar constante 
+                subtokens = re.findall(r"[‘']|[a-zA-Z0-9]+", token)  # Separar la constante en subtokens (comillas y constantes)
+                print("subtoken:", subtokens)
+                for subtoken in subtokens:
+                    if subtoken in delimitadores:  # Si es una comilla
+                        tipo,codigo = delimitadores[subtoken]
+                        tabla_lexica.append((num_linea, subtoken, tipo, 5, codigo, None))  # Agregar a la tabla léxica
+                        codigos_tokens.append(54)
+                    else:  # Si es una constante
+                        tipo = 6
+                        lexema = subtoken[1:-1] if subtoken[0] in ["‘", "'"] else subtoken  # Extraer el lexema de la constante
+                        codigo = num_constante
+                        tabla_constantes[lexema] = num_constante,62
+                        tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
+                        codigos_tokens.append(62)
+                        num_constante += 1
+            # elif re.match(r"[‘']([a-zA-Z0-9]+)[‘']", token): # Identificar constante alfanumérica
+            #     lexema = token[1:-1]
+            #     tipo = 6
+            #     tabla_constantes[lexema] = num_constante, 62
+            #     tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
+            #     codigos_tokens.append(62)
+            #     num_constante += 1
             elif re.match(r'[a-zA-Z#][a-zA-Z0-9]*|[a-zA-Z#][a-zA-Z0-9#]*#', token) : # Identificar los identificadores
                 if token not in tabla_identificadores:
                     tabla_identificadores[token] = num_identificador
@@ -188,13 +206,6 @@ def escanear_entrada(entrada):
                 lexema = f'ID_{tabla_identificadores[token]}'
                 tabla_lexica.append((num_linea, token, lexema, 4, tabla_identificadores[token], None))
                 codigos_tokens.append(4)
-            elif re.search(r"'(.*?)'", token): # Identificar constante alfanumerica
-                lexema = token[1:-1]
-                tipo = 6
-                tabla_constantes[lexema] = num_constante, 62
-                tabla_lexica.append((num_linea, 'CONSTANTE', lexema, tipo, num_constante, None))
-                codigos_tokens.append(62)
-                num_constante += 1
             elif re.match(r'[><=]', token):  # Identificar relacionales
                 tipo, valor = relacionales[token]
                 tabla_lexica.append((num_linea, token, tipo, 8, valor, None))
@@ -277,13 +288,14 @@ def algoritmo_ll(tabla_lexica):
             
         
       # Manejo de terminales y no terminales
-        if ((X > 9 and X < 30) or (X > 49 and X < 55) or (X>69 and X<74) or (X>60 and X<63)or X == 8 or X == 4) or X == 199:
-            
+        # if ((X > 9 and X < 30) or (X > 49 and X < 55) or (X>69 and X<74) or (X>60 and X<63)or X == 8 or X == 4) or X == 199:
+        if (X<300) or X == 199:    
             print("x es terminal o $: ", X)
             print("valory:", K)
 
             if X == K:
                 apun += 1  # Avanzar APUN
+                K = tabla_lexica[apun]
                 print("x = k, avanza apuntador:",apun )
             elif X != K:
                 print("error X no es igual a K: ", X)
@@ -308,21 +320,28 @@ def algoritmo_ll(tabla_lexica):
                 seguir = True
                 x_valor = None
                 
-                for valor in tabla_sintactica[indices_estados[X]]: # no puede ser regla ni 99
-                    if valor is not None:
-                        x_valor = valor[0]
-                        break
+                # for valor in tabla_sintactica[indices_estados[X]]: # no puede ser regla ni 99
+                #     if valor is not None:
+                #         x_valor = valor[0]
+                #         break
                 
-                X = x_valor
-                print("x_valor después del for:", x_valor)
+                # X = x_valor
+                # print("x_valor después del for:", x_valor)
 
-                while 300 <= x_valor <= 319 or x_valor==99:  # Si el resultado está entre 300 y 319, repetir el proceso
-                    for valor in tabla_sintactica[indices_estados[X]]:
-                        if valor is not None and valor[0]:
-                            x_valor = valor[0]
-                            break
+                # while 300 <= x_valor <= 319 or x_valor==99:  # Si el resultado está entre 300 y 319, repetir el proceso
+                #     for valor in tabla_sintactica[indices_estados[X]]:
+                #         if valor is not None and valor[0] != 99 :
+                #             x_valor = valor[0]
+                #             break
+                #     X = x_valor
+                x_valor= primeros_ts[X]
+                print("xvalor", x_valor)
+                X = x_valor
+
+                while 300 <= x_valor <= 319:  # Si el resultado está entre 300 y 319, repetir el proceso
+                    x_valor= primeros_ts[X]
                     X = x_valor
-                    
+                
                     
                 return ("error2 valor x:", x_valor)
 
@@ -355,6 +374,7 @@ def main():
         print(codigos_tokens)
 
         # Ejecutar el algoritmo LL
+
         print(algoritmo_ll(codigos_tokens))
 
 if __name__ == "__main__":

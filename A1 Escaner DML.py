@@ -131,16 +131,16 @@ tabla_sintactica[indices_estados[319]][indices_tokens[61]] = [61]
 
 
 # Códigos de errores léxicos y sintácticos
-errores = {
-    101: ("Símbolo desconocido", 1),
-    200: ("Sin error",2),
-    201: ("Se esperaba Palabra Reservada", 2),
-    204: ("Se esperaba Identificador", 2),
-    205: ("Se esperaba Delimitador", 2),
-    206: ("Se esperaba Constante", 2),
-    207: ("Se esperaba Operador", 2),
-    208: ("Se esperaba Operador Relacional", 2)
-}
+# errores = {
+#     101: ("Símbolo desconocido", 1),
+#     200: ("Sin error",2),
+#     201: ("Se esperaba Palabra Reservada", 2),
+#     204: ("Se esperaba Identificador", 2),
+#     205: ("Se esperaba Delimitador", 2),
+#     206: ("Se esperaba Constante", 2),
+#     207: ("Se esperaba Operador", 2),
+#     208: ("Se esperaba Operador Relacional", 2)
+# }
 
 def escanear_entrada(entrada):
     lineas = entrada.split('\n')
@@ -149,6 +149,7 @@ def escanear_entrada(entrada):
     tabla_constantes = {}
     errores = []
     codigos_tokens = []  # Lista para almacenar los códigos de tokens, incluyendo los errores
+    lineas_tokens=[]
     num_linea = 1
     num_identificador = 401
     num_constante = 600
@@ -255,6 +256,39 @@ def imprimir_tablas(tabla_lexica, tabla_identificadores, tabla_constantes):
     for lexema, (valor, tipo) in sorted(tabla_constantes.items(), key=lambda x: constantes_indices[x[0]]):
         tipo_nombre = 'ALFANUMERICO' if tipo == 62 else 'NUMERICO'
         print(f"| {constantes_indices[lexema]:<4} | {lexema:<16} | {tipo:<13} | {valor:<5} |")
+def traducir(valorX):
+    tipo=2
+    descripcionError=""
+    codigoError=-1;
+    if 9<valorX<30 :
+        descripcionError = "Se esperaba Palabra Reservada.";
+        codigoError = 201;
+        
+    elif valorX== 4: # Identificador
+        descripcionError = "Se esperaba Identificador.";
+        codigoError = 204;
+        
+    elif 51<valorX<55:
+        descripcionError = "Se esperaba Delimitador.";
+        codigoError = 205;
+       
+    elif 60<valorX<63:
+        descripcionError = "Se esperaba Constante.";
+        codigoError = 206;
+        
+    elif 69<valorX<74: 
+        descripcionError = "Se esperaba Operador.";
+        codigoError = 207;
+    elif valorX== 8:
+        descripcionError = "Se esperaba Operador Relacional.";
+        codigoError = 208;
+        
+    else:
+        descripcionError = "Simbolo desconocido";
+        codigoError = 101;
+        tipo = 1;
+        
+    return tipo,codigoError,descripcionError
 
 def algoritmo_ll(tabla_lexica):
     # Inicialización de la pila local
@@ -298,8 +332,10 @@ def algoritmo_ll(tabla_lexica):
                 K = tabla_lexica[apun]
                 print("x = k, avanza apuntador:",apun )
             elif X != K:
-                print("error X no es igual a K: ", X)
-                return (X) 
+                print("error X no es igual a K: valor esperado ", X)
+                tipo, codigoError, descripcionError = traducir(x_valor)
+                return "{} : {} {} Línea {}".format(tipo, codigoError, descripcionError, '')  # sin paréntesis ni comillas
+
         else:  # No es terminal
             print("X no es terminal o $:")
             print("valorx else:", X)
@@ -341,9 +377,11 @@ def algoritmo_ll(tabla_lexica):
                 while 300 <= x_valor <= 319:  # Si el resultado está entre 300 y 319, repetir el proceso
                     x_valor= primeros_ts[X]
                     X = x_valor
-                
-                    
-                return ("error2 valor x:", x_valor)
+                print("error2 valor x:", x_valor)
+
+                tipo, codigoError, descripcionError = traducir(x_valor)
+                return "{} : {} {} Línea {}".format(tipo, codigoError, descripcionError, '')  # sin paréntesis ni comillas
+
 
     
 def main():
@@ -365,17 +403,19 @@ def main():
         # Si se encontraron errores, mostrarlos
         if errores:
             mostrar_errores(errores)
+            
         else:
             # Impresión de las tablas de símbolos si no hay errores
             imprimir_tablas(tabla_lexica,tabla_identificadores,tabla_constantes)
+            # Imprimir todos los códigos, incluyendo los errores
+            print("\nArray de códigos de tokens:")
+            print(codigos_tokens)
 
-        # Imprimir todos los códigos, incluyendo los errores
-        print("\nArray de códigos de tokens:")
-        print(codigos_tokens)
+            # Ejecutar el algoritmo LL
 
-        # Ejecutar el algoritmo LL
+            print(algoritmo_ll(codigos_tokens))
 
-        print(algoritmo_ll(codigos_tokens))
+        
 
 if __name__ == "__main__":
     main()
